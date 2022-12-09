@@ -4,6 +4,7 @@
 #include <Adafruit_BME280.h>
 #include <WiFi.h>
 #include "ThingSpeak.h" // always include thingspeak header file after other header files and custom macros
+#include <WiFiManager.h>s
 
 char ssid[] = "MAKERINDO2";   // your network SSID (name) 
 char pass[] = "makerindo2019";   // your network password
@@ -51,15 +52,22 @@ void setup()
   Serial.println(F("BME280 test"));
 
   bool status;
-
-  // default settings
-  // (you can also pass in a Wire library object like &Wire2)
   status = bme.begin(0x76);  
   if (!status) {
     Serial.println("Could not find a valid BME280 sensor, check wiring!");
     while (1);
   }
-  WiFi.mode(WIFI_STA);   
+  WiFiManager wm;
+
+   bool res;
+    res = wm.autoConnect("Weather Station - 01"); // password protected ap
+    if(!res) {
+        Serial.println("Failed to connect");
+    } 
+    else {
+        //if you get here you have connected to the WiFi    
+        Serial.println("connected...yeey :)");
+    }   
   ThingSpeak.begin(client);  // Initialize ThingSpeak
 }
 

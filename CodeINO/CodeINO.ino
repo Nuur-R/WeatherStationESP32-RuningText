@@ -4,7 +4,7 @@
 #include <Adafruit_BME280.h>
 #include <WiFi.h>
 #include "ThingSpeak.h" // always include thingspeak header file after other header files and custom macros
-#include <WiFiManager.h>s
+#include <WiFiManager.h>
 
 char ssid[] = "MAKERINDO2";   // your network SSID (name) 
 char pass[] = "makerindo2019";   // your network password
@@ -116,5 +116,5 @@ void loop() {
   else{
     Serial.println("Problem updating channel. HTTP error code " + String(x));
   }
-  delay(5000);
+  delay(20000);
 }

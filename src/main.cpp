@@ -18,6 +18,7 @@ void IRAM_ATTR triggerScan()
   dmd.scanDisplayBySPI();
 }
 
+
 const int SensorPin = 34;
 const int mq2AnaloguePin = 35;
 
@@ -36,13 +37,6 @@ int InterruptCounter;
 
 Adafruit_BME280 bme(BME_CS, BME_MOSI, BME_MISO, BME_SCK);
 unsigned long delayTime;
-
-
-void countup() {
-  InterruptCounter++;
-}
-
-
 
 void setup(void)
 {
@@ -75,11 +69,9 @@ float humidity = 0;
 
 void sensorRead()
 {
-  InterruptCounter = 0;
-  attachInterrupt(digitalPinToInterrupt(SensorPin), countup, RISING);
-  delay(1000 * RecordTime);
-  detachInterrupt(digitalPinToInterrupt(SensorPin));
-  WindSpeed = (float)InterruptCounter / (float)RecordTime * 2.4;
+  float sensorValue = analogRead(SensorPin);
+  float voltage = (sensorValue / 1023) * 5;
+  WindSpeed = mapfloat(voltage, 0.4, 2, 0, 32.4);
   mq2data = analogRead(mq2AnaloguePin);
   temp = bme.readTemperature();
   pressure = bme.readPressure() / 100.0F;
@@ -114,4 +106,9 @@ void loop(void)
   Serial.println();
   sensorRead();
   sensorDisplay(WindSpeed, mq2data, temp, pressure, altitude, humidity);
+}
+
+float mapfloat(float x, float in_min, float in_max, float out_min, float out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }

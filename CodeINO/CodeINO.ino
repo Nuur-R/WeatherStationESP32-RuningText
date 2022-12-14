@@ -24,10 +24,14 @@ int InterruptCounter;
 float WindSpeed;
 
 #define SEALEVELPRESSURE_HPA (1013.25)
+#define BME_SCK 14
+#define BME_MISO 12
+#define BME_MOSI 13
+#define BME_CS 15
 
-Adafruit_BME280 bme; // I2C
-//Adafruit_BME280 bme(BME_CS); // hardware SPI
-//Adafruit_BME280 bme(BME_CS, BME_MOSI, BME_MISO, BME_SCK); // software SPI
+#define SEALEVELPRESSURE_HPA (1013.25)
+
+Adafruit_BME280 bme(BME_CS, BME_MOSI, BME_MISO, BME_SCK);
 
 unsigned long delayTime;
 

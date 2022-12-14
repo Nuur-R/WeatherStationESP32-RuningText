@@ -23,7 +23,6 @@ const int mq2AnaloguePin = 35;
 
 const int RecordTime = 3;
 int InterruptCounter;
-float WindSpeed;
 
 #define SEALEVELPRESSURE_HPA (1013.25)
 
@@ -43,13 +42,7 @@ void countup() {
   InterruptCounter++;
 }
 
-void measure() {
-  InterruptCounter = 0;
-  attachInterrupt(digitalPinToInterrupt(SensorPin), countup, RISING);
-  delay(1000 * RecordTime);
-  detachInterrupt(digitalPinToInterrupt(SensorPin));
-  WindSpeed = (float)InterruptCounter / (float)RecordTime * 2.4;
-}
+
 
 void setup(void)
 {
@@ -73,19 +66,31 @@ void setup(void)
   }
 }
 
-int mq2data = 0;
+float WindSpeed = 0;
+float mq2data = 0;
 float temp = 0;
 float pressure = 0;
 float altitude = 0;
 float humidity = 0;
-void loop(void)
+
+void sensorRead()
 {
-   // 10 x 14 font clock, including demo of OR and NOR modes for pixels so that the flashing colon can be overlayed
-   dmd.clearScreen( true );
-   dmd.selectFont(Arial_Black_16_ISO_8859_1);
-   
-   
-   String pesan = "Wind Speed: " + String(WindSpeed) + " km/h || Asap : " + String(mq2data) + " || Temp : " + String(temp) + " C || Humidity : " + String(humidity) + " % || Pressure : " + String(pressure) + " hPa || Altitude : " + String(altitude) + " m";
+  InterruptCounter = 0;
+  attachInterrupt(digitalPinToInterrupt(SensorPin), countup, RISING);
+  delay(1000 * RecordTime);
+  detachInterrupt(digitalPinToInterrupt(SensorPin));
+  WindSpeed = (float)InterruptCounter / (float)RecordTime * 2.4;
+  mq2data = analogRead(mq2AnaloguePin);
+  temp = bme.readTemperature();
+  pressure = bme.readPressure() / 100.0F;
+  altitude = bme.readAltitude(SEALEVELPRESSURE_HPA);
+  humidity = bme.readHumidity();
+}
+void sensorDisplay(float windSpeed, float mq2data, float temp, float pressure, float altitude, float humidity)
+{
+  dmd.clearScreen( true );
+  dmd.selectFont(Arial_Black_16_ISO_8859_1);
+  String pesan = "Wind Speed: " + String(WindSpeed) + " km/h || Asap : " + String(mq2data) + " || Temp : " + String(temp) + " C || Humidity : " + String(humidity) + " % || Pressure : " + String(pressure) + " hPa || Altitude : " + String(altitude) + " m";
    dmd.drawMarquee(pesan.c_str(),pesan.length(),(32*DISPLAYS_ACROSS)-1,0);
    long start=millis();
    long timer=start;
@@ -96,11 +101,17 @@ void loop(void)
        timer=millis();
      }
    }
-   
- 
-  mq2data = analogRead(mq2AnaloguePin);
-  temp = bme.readTemperature();
-  pressure = bme.readPressure() / 100.0F;
-  altitude = bme.readAltitude(SEALEVELPRESSURE_HPA);
-  humidity = bme.readHumidity();
+}
+
+void loop(void)
+{
+  Serial.println("Wind Speed : "+String(WindSpeed)+"km/h");
+  Serial.println("Asap : "+String(mq2data));
+  Serial.println("Temp : "+String(temp)+"C");
+  Serial.println("Humidity : "+String(humidity)+"%");
+  Serial.println("Pressure : "+String(pressure)+"hPa");
+  Serial.println("Altitude : "+String(altitude)+"m");
+  Serial.println();
+  sensorRead();
+  sensorDisplay(WindSpeed, mq2data, temp, pressure, altitude, humidity);
 }

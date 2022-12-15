@@ -4,9 +4,18 @@
 #include <Adafruit_BME280.h>
 #include <WiFi.h>
 #include "ThingSpeak.h" // always include thingspeak header file after other header files and custom macros
+#include <WiFiManager.h>
 #include <DMD32.h> 
 #include "fonts/SystemFont5x7.h"
 #include "fonts/Arial_Black_16_ISO_8859_1.h"
+
+char ssid[] = "MAKERINDO2";   // your network SSID (name) 
+char pass[] = "makerindo2019";   // your network password
+int keyIndex = 0;            // your network key Index number (needed only for WEP)
+WiFiClient  client;
+
+unsigned long myChannelNumber = 3;
+const char * myWriteAPIKey = "CBHFE8I3YQ0S6A0G";
 
 #define DISPLAYS_ACROSS 4
 #define DISPLAYS_DOWN 1
@@ -18,16 +27,12 @@ void IRAM_ATTR triggerScan()
   dmd.scanDisplayBySPI();
 }
 
-
 const int SensorPin = 34;
 const int mq2AnaloguePin = 35;
 
 const int RecordTime = 3;
 int InterruptCounter;
-
 #define SEALEVELPRESSURE_HPA (1013.25)
-
-
 #define BME_SCK 14
 #define BME_MISO 12
 #define BME_MOSI 13
@@ -36,19 +41,22 @@ int InterruptCounter;
 #define SEALEVELPRESSURE_HPA (1013.25)
 
 Adafruit_BME280 bme(BME_CS, BME_MOSI, BME_MISO, BME_SCK);
+
 unsigned long delayTime;
 
-void setup(void)
+
+
+
+
+void setup()
 {
   uint8_t cpuClock = ESP.getCpuFreqMHz();
   timer = timerBegin(0, cpuClock, true);
-  timerAttachInterrupt(timer, &triggerScan, true);
   timerAlarmWrite(timer, 300, true);
   timerAlarmEnable(timer);
-  dmd.clearScreen( true );   //true is normal (all pixels off), false is negative (all pixels on)
-  
-  Serial.begin(115200);
+  dmd.clearScreen( true );
 
+  Serial.begin(115200);
   pinMode(mq2AnaloguePin, INPUT);
   Serial.println(F("BME280 test"));
 
@@ -58,6 +66,18 @@ void setup(void)
     Serial.println("Could not find a valid BME280 sensor, check wiring!");
     while (1);
   }
+  WiFiManager wm;
+
+   bool res;
+    res = wm.autoConnect("Weather Station - 01"); // password protected ap
+    if(!res) {
+        Serial.println("Failed to connect");
+    } 
+    else {
+        //if you get here you have connected to the WiFi    
+        Serial.println("connected...yeey :)");
+    }   
+  ThingSpeak.begin(client);  // Initialize ThingSpeak
 }
 
 float WindSpeed = 0;
@@ -95,17 +115,42 @@ void sensorDisplay(float windSpeed, float mq2data, float temp, float pressure, f
    }
 }
 
-void loop(void)
-{
-  Serial.println("Wind Speed : "+String(WindSpeed)+"km/h");
-  Serial.println("Asap : "+String(mq2data));
-  Serial.println("Temp : "+String(temp)+"C");
-  Serial.println("Humidity : "+String(humidity)+"%");
-  Serial.println("Pressure : "+String(pressure)+"hPa");
-  Serial.println("Altitude : "+String(altitude)+"m");
-  Serial.println();
+void loop() {
+  // Connect or reconnect to WiFi
   sensorRead();
   sensorDisplay(WindSpeed, mq2data, temp, pressure, altitude, humidity);
+
+  Serial.println("Wind Speed       : "+String(WindSpeed)+" km/h - "+String(WindSpeed / 3.6)+" m/s");
+  Serial.println("Smoke            : "+String(mq2data));
+  Serial.println("Temperature      : "+String(temp)+" *C");
+  Serial.println("Pressure         : "+String(pressure)+" hPa");
+  Serial.println("Approx. Altitude : "+String(altitude)+" m");
+  Serial.println("Humidity         : "+String(humidity)+" %");
+  Serial.println();
+
+  
+  
+
+
+  ThingSpeak.setField(1, WindSpeed);
+  ThingSpeak.setField(2, mq2data);
+  ThingSpeak.setField(3, pressure);
+  ThingSpeak.setField(4, temp);
+  ThingSpeak.setField(5, humidity);
+  ThingSpeak.setField(6, altitude);
+
+  // set the status
+  ThingSpeak.setStatus("myStatus OK");
+  
+  // write to the ThingSpeak channel
+  int x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
+  if(x == 200){
+    Serial.println("Channel update successful.");
+  }
+  else{
+    Serial.println("Problem updating channel. HTTP error code " + String(x));
+  }
+  delay(20000);
 }
 
 float mapfloat(float x, float in_min, float in_max, float out_min, float out_max)

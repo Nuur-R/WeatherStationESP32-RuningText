@@ -7,6 +7,7 @@
 #include <DMD32.h> 
 #include "fonts/SystemFont5x7.h"
 #include "fonts/Arial_Black_16_ISO_8859_1.h"
+#include <WiFiManager.h>
 
 #define DISPLAYS_ACROSS 4
 #define DISPLAYS_DOWN 1
@@ -38,16 +39,34 @@ int InterruptCounter;
 Adafruit_BME280 bme(BME_CS, BME_MOSI, BME_MISO, BME_SCK);
 unsigned long delayTime;
 
+unsigned long myChannelNumber = 3;
+const char * myWriteAPIKey = "CBHFE8I3YQ0S6A0G";
+WiFiClient  client;
+
 void setup(void)
 {
+  Serial.begin(115200);
+    
+  WiFiManager wm;
+
+  bool res;
+  res = wm.autoConnect("AutoConnectAP","password"); // password protected ap
+
+  if(!res) {
+    Serial.println("Failed to connect");
+  } 
+  else {
+    Serial.println("connected...yeey :)");
+  }
+
+  ThingSpeak.begin(client);
+
   uint8_t cpuClock = ESP.getCpuFreqMHz();
   timer = timerBegin(0, cpuClock, true);
   timerAttachInterrupt(timer, &triggerScan, true);
   timerAlarmWrite(timer, 300, true);
   timerAlarmEnable(timer);
   dmd.clearScreen( true );   //true is normal (all pixels off), false is negative (all pixels on)
-  
-  Serial.begin(115200);
 
   pinMode(mq2AnaloguePin, INPUT);
   Serial.println(F("BME280 test"));
@@ -82,7 +101,7 @@ void sensorDisplay(float windSpeed, float mq2data, float temp, float pressure, f
 {
   dmd.clearScreen( true );
   dmd.selectFont(Arial_Black_16_ISO_8859_1);
-  String pesan = "Wind Speed: " + String(WindSpeed) + " km/h || Asap : " + String(mq2data) + " || Temp : " + String(temp) + " C || Humidity : " + String(humidity) + " % || Pressure : " + String(pressure) + " hPa || Altitude : " + String(altitude) + " m";
+  String pesan = "Kecepatan Angin : " + String(WindSpeed) + "km/h || Asap : " + String(mq2data) + " || Temp : " + String(temp) + " C || Humidity : " + String(humidity) + " % || Pressure : " + String(pressure) + " hPa || Altitude : " + String(altitude) + " m";
    dmd.drawMarquee(pesan.c_str(),pesan.length(),(32*DISPLAYS_ACROSS)-1,0);
    long start=millis();
    long timer=start;
@@ -97,6 +116,9 @@ void sensorDisplay(float windSpeed, float mq2data, float temp, float pressure, f
 
 void loop(void)
 {
+  sensorRead();
+  sensorDisplay(WindSpeed, mq2data, temp, pressure, altitude, humidity);
+  
   Serial.println("Wind Speed : "+String(WindSpeed)+"km/h");
   Serial.println("Asap : "+String(mq2data));
   Serial.println("Temp : "+String(temp)+"C");
@@ -104,8 +126,25 @@ void loop(void)
   Serial.println("Pressure : "+String(pressure)+"hPa");
   Serial.println("Altitude : "+String(altitude)+"m");
   Serial.println();
-  sensorRead();
-  sensorDisplay(WindSpeed, mq2data, temp, pressure, altitude, humidity);
+
+  ThingSpeak.setField(1, WindSpeed);
+  ThingSpeak.setField(2, mq2data);
+  ThingSpeak.setField(3, pressure);
+  ThingSpeak.setField(4, temp);
+  ThingSpeak.setField(5, humidity);
+  ThingSpeak.setField(6, altitude);
+
+  // set the status
+  ThingSpeak.setStatus("myStatus OK");
+  
+  // write to the ThingSpeak channel
+  int x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
+  if(x == 200){
+    Serial.println("Channel update successful.");
+  }
+  else{
+    Serial.println("Problem updating channel. HTTP error code " + String(x));
+  }
 }
 
 float mapfloat(float x, float in_min, float in_max, float out_min, float out_max)

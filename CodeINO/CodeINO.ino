@@ -43,6 +43,7 @@ unsigned long myChannelNumber = 3;
 const char * myWriteAPIKey = "CBHFE8I3YQ0S6A0G";
 WiFiClient  client;
 
+
 void setup(void)
 {
   Serial.begin(115200);
@@ -50,7 +51,7 @@ void setup(void)
   WiFiManager wm;
 
   bool res;
-  res = wm.autoConnect("AutoConnectAP","password"); // password protected ap
+  res = wm.autoConnect("Purple Ganesha","1234567890"); // password protected ap
 
   if(!res) {
     Serial.println("Failed to connect");
@@ -101,7 +102,7 @@ void sensorDisplay(float windSpeed, float mq2data, float temp, float pressure, f
 {
   dmd.clearScreen( true );
   dmd.selectFont(Arial_Black_16_ISO_8859_1);
-  String pesan = "Kecepatan Angin : " + String(WindSpeed) + "km/h || Asap : " + String(mq2data) + " || Temp : " + String(temp) + " C || Humidity : " + String(humidity) + " % || Pressure : " + String(pressure) + " hPa || Altitude : " + String(altitude) + " m";
+  String pesan = "Stasion Cuaca Mini GANESHA PURPLE --- Kecepatan Angin : " + String(WindSpeed) + " km/h || Carbon : " + String(mq2data) + " ppm || Suhu : " + String(temp) + " C || Kelembaban : " + String(humidity) + " % || Tekanan Atmosfer : " + String(pressure) + " hPa || Ketinggian Permukaaan Tanah : " + String(altitude) + " m DPAL";
    dmd.drawMarquee(pesan.c_str(),pesan.length(),(32*DISPLAYS_ACROSS)-1,0);
    long start=millis();
    long timer=start;
